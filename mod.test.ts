@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert";
-import { anyhow, ok, Result, safely, safelyAsync } from "./mod.ts";
+import { anyhow, ok, type Result, safely, safelyAsync } from "./mod.ts";
 
 // This should pass type check
 function genResult(genError: boolean): Result<number, Error> {

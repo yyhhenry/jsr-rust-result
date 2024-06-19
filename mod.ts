@@ -1,3 +1,12 @@
+/**
+ * Result type inspired by Rust's Result type.
+ * - Try isOk() and isErr() to check the state of the instance.
+ * - Use match() to handle the value or error.
+ * - Use unwrap() and unwrapErr() to get the value or error.
+ * - Use map() and mapErr() to transform the value or error.
+ * - Use unwrapOr() and unwrapOrElse() to get the value or a default value.
+ * - Use andThen() to chain the Result.
+ */
 export type Result<T, E extends Error> = Ok<T, E> | Err<T, E>;
 class ResultBase<T, E extends Error> {
   isOk(): this is Ok<T, E> {
@@ -67,22 +76,34 @@ class Err<T, E extends Error> extends ResultBase<T, E> {
   }
 }
 
-// Constructors
-
+/**
+ * Create a new Ok instance.
+ */
 export function ok<T>(value: T): Ok<T, never> {
   return new Ok(value);
 }
+/**
+ * Create a new Err instance.
+ */
 export function err<E extends Error>(error: E): Err<never, E> {
   return new Err(error);
 }
+/**
+ * Create a new Err instance from error message.
+ */
 export function anyhow(s: string): Err<never, Error> {
   return err(new Error(s));
 }
 
-// Safely Helpers
-
+/**
+ * Function to convert an unknown value to an specific Error instance.
+ */
 export type ToError<E extends Error> = (e: unknown) => E;
-
+/**
+ * Convert an unknown value to an Error instance.
+ * @param e Unknown error value.
+ * @returns Error instance.
+ */
 export function toError(e: unknown): Error {
   if (e instanceof Error) {
     return e;
@@ -90,6 +111,11 @@ export function toError(e: unknown): Error {
     return new Error(String(e));
   }
 }
+/**
+ * Run throwable function and return a Result instance.
+ * @param toErr Function to convert an unknown value to an Error instance.
+ * @param f Throwable function.
+ */
 export function safelyWith<E extends Error, ToErr extends ToError<E>, T>(
   toErr: ToErr,
   f: () => T,
@@ -100,9 +126,20 @@ export function safelyWith<E extends Error, ToErr extends ToError<E>, T>(
     return err(toErr(e));
   }
 }
+/**
+ * Run throwable function and return a Result<T, Error> instance.
+ * @param f Throwable function.
+ * @returns Result instance.
+ */
 export function safely<T>(f: () => T): Result<T, Error> {
   return safelyWith(toError, f);
 }
+/**
+ * Run throwable async function and return a Result instance.
+ * @param toErr Function to convert an unknown value to an Error instance.
+ * @param f Throwable async function.
+ * @returns Promise of Result instance.
+ */
 export async function safelyAsyncWith<
   E extends Error,
   ToErr extends ToError<E>,
@@ -115,6 +152,11 @@ export async function safelyAsyncWith<
     return err(toErr(e));
   }
 }
+/**
+ * Run throwable async function and return a Result<T, Error> instance.
+ * @param f Throwable async function.
+ * @returns Promise of Result instance.
+ */
 export function safelyAsync<T>(
   f: () => Promise<T>,
 ): Promise<Result<Awaited<T>, Error>> {
