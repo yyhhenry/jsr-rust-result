@@ -1,4 +1,4 @@
-name: Deno Lint and Test
+name: Deno Test
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: ['main']
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
