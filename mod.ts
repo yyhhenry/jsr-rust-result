@@ -35,9 +35,9 @@ class ResultBase<T, E extends Error> {
   }
   match<U>(ok: (v: T) => U, err: (e: E) => U): U {
     if (this.isOk()) {
-      return ok(this.value);
+      return ok(this.unwrap());
     } else if (this.isErr()) {
-      return err(this.error);
+      return err(this.unwrapErr());
     } else {
       throw new Error("Invalid state of Result instance");
     }
@@ -74,7 +74,7 @@ class ResultBase<T, E extends Error> {
   }
 }
 class Ok<T, E extends Error> extends ResultBase<T, E> {
-  value: T;
+  private value: T;
   constructor(value: T) {
     super();
     this.value = value;
@@ -84,7 +84,7 @@ class Ok<T, E extends Error> extends ResultBase<T, E> {
   }
 }
 class Err<T, E extends Error> extends ResultBase<T, E> {
-  error: E;
+  private error: E;
   constructor(error: E) {
     super();
     this.error = error;

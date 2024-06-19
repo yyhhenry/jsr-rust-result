@@ -1,0 +1,21 @@
+name: Deno Lint and Test
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denolib/setup-deno@v2
+        with:
+          deno-version: v1.x
+      - name: Lint
+        run: deno lint
+      - name: Test
+        run: deno test
