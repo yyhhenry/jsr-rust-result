@@ -1,4 +1,22 @@
 /**
+ * @module
+ *
+ * Provides `Result<T, E>` and `Ok<T>` and `Err<E>` types.
+ *
+ * @example
+ * ```ts
+ * import { ok, err, anyhow, safely } from "@yyhhenry/rust-result";
+ *
+ * const safeJsonParse = (s: string) => safely(() => JSON.parse(s));
+ *
+ * const result = safeJsonParse('{"a": 1}');
+ * // Or
+ * // const result = safeJsonParse('{"a": 1');
+ * console.log(result.isOk() ? result.unwrap() : result.unwrapErr().message);
+ * ```
+ */
+
+/**
  * Result type inspired by Rust's Result type.
  * - Try isOk() and isErr() to check the state of the instance.
  * - Use match() to handle the value or error.
