@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { anyhow, ok, type Result, safely, safelyAsync } from "./mod.ts";
 
 // This should pass type check
