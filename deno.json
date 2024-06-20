@@ -1,5 +1,8 @@
 {
   "name": "@yyhhenry/rust-result",
+  "fmt": {
+    "exclude": ["*.json"]
+  },
   "version": "0.2.7",
   "exports": "./mod.ts",
   "imports": {

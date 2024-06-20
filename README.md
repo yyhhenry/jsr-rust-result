@@ -13,7 +13,7 @@ pnpm dlx jsr add @yyhhenry/rust-result
 ## Usage
 
 ```ts
-import { ok, err, anyhow, safely } from "@yyhhenry/rust-result";
+import { anyhow, err, ok, safely } from "@yyhhenry/rust-result";
 const safeJsonParse = (s: string) => safely(() => JSON.parse(s));
 const result = safeJsonParse('{"a": 1}');
 // Or
