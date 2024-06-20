@@ -13,6 +13,8 @@
  * // Or
  * // const result = safeJsonParse('{"a": 1');
  * console.log(result.isOk() ? result.unwrap() : result.unwrapErr().message);
+ * // It's safe to call unwrap() method in TypeScript,
+ * // since it's only available when the type is narrowed to Ok.
  * ```
  */
 
@@ -20,10 +22,15 @@
  * Result type inspired by Rust's Result type.
  * - Try isOk() and isErr() to check the state of the instance.
  * - Use match() to handle the value or error.
- * - Use unwrap() and unwrapErr() to get the value or error.
  * - Use map() and mapErr() to transform the value or error.
  * - Use unwrapOr() and unwrapOrElse() to get the value or a default value.
  * - Use andThen() to chain the Result.
+ * - Use unwrap() to get the value, and unwrapErr() to get the error.
+ *
+ * For unwrap() and unwrapErr(), they are safe to call in TypeScript,
+ * since they are only available when the type is narrowed to Ok or Err, like:
+ * - Inside a conditional statement that checks isOk() or isErr() (also !isOk() or !isErr()).
+ * - Directly after the Result instance is created by ok(), err(), or anyhow().
  */
 export type Result<T, E extends Error> = Ok<T, E> | Err<T, E>;
 class ResultBase<T, E extends Error> {
