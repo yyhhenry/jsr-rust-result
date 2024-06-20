@@ -1,7 +1,7 @@
 /**
  * @module
  *
- * Provides `Result<T, E>` and `Ok<T>` and `Err<E>` types.
+ * Rust-like error handling in TypeScript.
  *
  * @example
  * ```ts
