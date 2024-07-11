@@ -22,3 +22,5 @@ console.log(result.isOk() ? result.unwrap() : result.unwrapErr().message);
 // It's safe to call unwrap() method in TypeScript,
 // since it's only available when the type is narrowed to Ok.
 ```
+
+See also <https://github.com/yyhhenry/rust-result>.
