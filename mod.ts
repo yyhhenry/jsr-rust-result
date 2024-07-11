@@ -185,7 +185,9 @@ export class Err<T, E extends Error> extends ResultBase<T, E> {
 /**
  * Create a new Ok instance.
  */
-export function ok<T>(value: T): Ok<T, never> {
+export function ok<T>(value: T): Ok<T, never>;
+export function ok(): Ok<void, never>;
+export function ok<T>(value?: T): Ok<T | undefined, never> {
   return new Ok(value);
 }
 /**

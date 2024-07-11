@@ -1,15 +1,23 @@
 import { assertEquals } from "@std/assert";
 import { anyhow, ok, type Result, safely, safelyAsync } from "./mod.ts";
 
-// This should pass type check
-function genResult(genError: boolean): Result<number, Error> {
-  if (genError) {
-    return anyhow("calc(): error occurred");
+Deno.test("Empty ok", () => {
+  // This should pass type check
+  function emptyOk(): Result<void, Error> {
+    return ok();
   }
-  return ok(42);
-}
+  assertEquals(emptyOk().isOk(), true);
+  assertEquals(emptyOk(), ok());
+});
 
 Deno.test("generate result and unwrap", () => {
+  // This should pass type check
+  function genResult(genError: boolean): Result<number, Error> {
+    if (genError) {
+      return anyhow("calc(): error occurred");
+    }
+    return ok(42);
+  }
   // This should pass type check
   genResult(true);
   genResult(false);
