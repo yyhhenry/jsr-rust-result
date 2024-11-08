@@ -102,9 +102,7 @@ Deno.test("map and mapErr", () => {
   assertEquals(mappedOkResult2.isOk() && mappedOkResult2.unwrap(), 10);
 
   const errResult2: Result<number, Error> = anyhow("an error occurred");
-  const mappedErrResult2 = errResult2.mapErr(
-    (e) => new Error(e.message + "!"),
-  );
+  const mappedErrResult2 = errResult2.mapErr((e) => new Error(e.message + "!"));
   assertEquals(
     mappedErrResult2.isErr() && mappedErrResult2.unwrapErr().message,
     "an error occurred!",

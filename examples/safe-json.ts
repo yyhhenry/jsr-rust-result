@@ -5,12 +5,12 @@ const safeJsonParse = (s: string) => safely(() => JSON.parse(s));
 const okRes = safeJsonParse('{"a": 1}');
 console.log(
   okRes.isOk(),
-  okRes.isOk() ? okRes.unwrap() : okRes.unwrapErr().message
+  okRes.isOk() ? okRes.unwrap() : okRes.unwrapErr().message,
 );
 
 // false Expected ',' or '}' after property value in JSON at position 7 (line 1 column 8)
 const errRes = safeJsonParse('{"a": 1');
 console.log(
   errRes.isOk(),
-  errRes.isOk() ? errRes.unwrap() : errRes.unwrapErr().message
+  errRes.isOk() ? errRes.unwrap() : errRes.unwrapErr().message,
 );

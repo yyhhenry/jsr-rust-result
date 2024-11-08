@@ -69,7 +69,7 @@ export class ResultBase<T, E extends Error> {
   map<U>(f: (v: T) => U): Result<U, E> {
     return this.match<Result<U, E>>(
       (v) => ok(f(v)),
-      (e) => err(e)
+      (e) => err(e),
     );
   }
 
@@ -82,7 +82,7 @@ export class ResultBase<T, E extends Error> {
   mapErr<F extends Error>(f: (e: E) => F): Result<T, F> {
     return this.match<Result<T, F>>(
       (v) => ok(v),
-      (e) => err(f(e))
+      (e) => err(f(e)),
     );
   }
 
@@ -94,7 +94,7 @@ export class ResultBase<T, E extends Error> {
   unwrapOr(v: T): T {
     return this.match<T>(
       (v) => v,
-      () => v
+      () => v,
     );
   }
 
@@ -106,7 +106,7 @@ export class ResultBase<T, E extends Error> {
   unwrapOrElse(f: (e: E) => T): T {
     return this.match<T>(
       (v) => v,
-      (e) => f(e)
+      (e) => f(e),
     );
   }
 
@@ -119,7 +119,7 @@ export class ResultBase<T, E extends Error> {
   andThen<U>(f: (v: T) => Result<U, E>): Result<U, E> {
     return this.match<Result<U, E>>(
       (v) => f(v),
-      (e) => err(e)
+      (e) => err(e),
     );
   }
 }
@@ -226,7 +226,7 @@ export function toError(e: unknown): Error {
  */
 export function safelyWith<E extends Error, ToErr extends ToError<E>, T>(
   toErr: ToErr,
-  f: () => T
+  f: () => T,
 ): Result<T, E> {
   try {
     return ok(f());
@@ -251,7 +251,7 @@ export function safely<T>(f: () => T): Result<T, Error> {
 export async function safelyAsyncWith<
   E extends Error,
   ToErr extends ToError<E>,
-  T
+  T,
 >(toErr: ToErr, f: () => Promise<T>): Promise<Result<Awaited<T>, E>> {
   try {
     const value = await f();
@@ -266,7 +266,7 @@ export async function safelyAsyncWith<
  * @returns Promise of Result instance.
  */
 export function safelyAsync<T>(
-  f: () => Promise<T>
+  f: () => Promise<T>,
 ): Promise<Result<Awaited<T>, Error>> {
   return safelyAsyncWith(toError, f);
 }
