@@ -1,5 +1,6 @@
 {
   "name": "@yyhhenry/rust-result",
+  "license": "MIT",
   "version": "0.3.2",
   "exports": "./mod.ts",
   "imports": {
