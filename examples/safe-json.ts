@@ -1,16 +1,3 @@
-# @yyhhenry/rust-result
-
-Rust-like error handling in TypeScript.
-
-## Installation
-
-```sh
-deno add jsr:@yyhhenry/rust-result
-```
-
-## Usage
-
-```ts
 import { safely } from "@yyhhenry/rust-result";
 const safeJsonParse = (s: string) => safely(() => JSON.parse(s));
 
@@ -27,5 +14,3 @@ console.log(
   errRes.isOk(),
   errRes.isOk() ? errRes.unwrap() : errRes.unwrapErr().message
 );
-
-```
