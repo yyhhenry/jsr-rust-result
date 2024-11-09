@@ -1,272 +1,280 @@
 /**
- * Result type inspired by Rust's Result type.
- * - Try isOk() and isErr() to check the state of the instance.
- * - Use match() to handle the value or error.
- * - Use map() and mapErr() to transform the value or error.
- * - Use unwrapOr() and unwrapOrElse() to get the value or a default value.
- * - Use andThen() to chain the Result.
- * - Use unwrap() to get the value, and unwrapErr() to get the error.
+ * Represents a panic error, which is a type of error that occurs when the program encounters an unexpected condition.
+ * This class extends the built-in `Error` class.
  *
- * For unwrap() and unwrapErr(), they are safe to call in TypeScript,
- * since they are only available when the type is narrowed to Ok or Err, like:
- * - Inside a conditional statement that checks isOk() or isErr() (also !isOk() or !isErr()).
- * - After a conditional statement that checks isOk() or isErr() and returns from the function.
- * - Directly after the Result instance is created by ok(), err(), or anyhow().
+ * @remarks
+ * This error is used to indicate a critical failure that should not be recovered from.
  *
- * **Note:** Do not use the ResultBase class directly,
- * it cannot be automatically narrowed to Ok or Err in TypeScript,
- * since its subclasses are not exhaustive.
+ * @example
+ * ```typescript
+ * panic_("Division by zero");
+ * ```
  */
-export type Result<T, E extends Error> = Ok<T, E> | Err<T, E>;
+export class Panic extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "Panic";
+  }
+}
 /**
- * Represents the base class for the Result type in Rust.
- * @typeparam T The type of the value contained in the Ok variant.
- * @typeparam E The type of the error contained in the Err variant.
+ * Throws a `Panic` error with the provided message.
  *
- * *DO NOT USE THIS CLASS DIRECTLY, USE Result<T, E> INSTEAD*
+ * @param message - The message to include in the `Panic` error.
+ * @throws {Panic} Always throws a `Panic` error with the provided message.
  */
-export class ResultBase<T, E extends Error> {
-  /**
-   * Checks if the Result is in the Ok state.
-   * @returns A boolean indicating whether the Result is in the Ok state.
-   */
-  isOk(): this is Ok<T, E> {
-    return this instanceof Ok;
-  }
+export function panic_(message: string): never {
+  throw new Panic(message);
+}
 
+/**
+ * Interface representing a set of functions for handling `Result` types.
+ *
+ * @template T - The type of the value in the `Ok` variant.
+ * @template E - The type of the error in the `Err` variant. Defaults to `Error`.
+ */
+export interface ResultFunctions<T, E = Error> {
   /**
-   * Checks if the Result is in the Err state.
-   * @returns A boolean indicating whether the Result is in the Err state.
+   * Checks if the `Result` is an `Ok` variant.
    */
-  isErr(): this is Err<T, E> {
-    return this instanceof Err;
-  }
-
+  isOk(): this is Ok<T> & ResultFunctions<T, E>;
   /**
-   * Matches the Result against the provided functions and returns the result of the matching function.
-   * @typeparam U The type of the value returned by the matching function.
-   * @param ok The function to be called if the Result is in the Ok state.
-   * @param err The function to be called if the Result is in the Err state.
+   * Checks if the `Result` is an `Err` variant.
+   */
+  isErr(): this is Err<E> & ResultFunctions<T, E>;
+  /**
+   * Unwraps the value contained in the `Ok` variant.
+   * @returns The value contained in the `Ok` variant.
+   * @throws {Panic} If the `Result` is an `Err` variant.
+   */
+  expect(msg: string): T;
+  /**
+   * Unwraps the error contained in the `Err` variant.
+   * @returns The error contained in the `Err` variant.
+   * @throws {Panic} If the `Result` is an `Ok` variant.
+   */
+  expectErr(msg: string): E;
+  /**
+   * Unwraps the value contained in the `Ok` variant.
+   * @returns The value contained in the `Ok` variant.
+   * @throws {Panic} If the `Result` is an `Err` variant.
+   *
+   * @remarks
+   * Not recommended for use in production code.
+   */
+  unwrap_(): T;
+  /**
+   * Unwraps the error contained in the `Err` variant.
+   * @returns The error contained in the `Err` variant.
+   * @throws {Panic} If the `Result` is an `Ok` variant.
+   *
+   * @remarks
+   * Not recommended for use in production code.
+   */
+  unwrapErr_(): E;
+  /**
+   * Matches the `Result` against the provided functions and returns the result of the matching function.
+   * @typeparam U - The type of the value returned by the matching function.
+   * @param ok - The function to be called if the `Result` is an `Ok` variant.
+   * @param err - The function to be called if the `Result` is an `Err` variant.
    * @returns The result of the matching function.
-   * @throws Error if the Result is in an invalid state.
    */
+  match<U>(ok: (v: T) => U, err: (e: E) => U): U;
+  /**
+   * Unwraps the value contained in the `Ok` variant, or returns a default value.
+   * @param def - The default value to return if the `Result` is an `Err` variant.
+   * @returns The value contained in the `Ok` variant, or the default value.
+   */
+  unwrapOr(def: T): T;
+  /**
+   * Unwraps the value contained in the `Ok` variant, or computes a default value.
+   * @param fn - The function to be called to compute the default value.
+   * @returns The value contained in the `Ok` variant, or the computed default value.
+   */
+  unwrapOrElse(fn: (e: E) => T): T;
+  /**
+   * Maps the value contained in the `Ok` variant to a new value using the provided function.
+   * @typeparam U - The type of the value contained in the new `Ok` variant.
+   * @param fn - The function to be applied to the value contained in the `Ok` variant.
+   * @returns A new `Result` with the mapped value in the `Ok` variant, or the original `Err` variant.
+   */
+  map<U>(fn: (t: T) => U): Result<U, E>;
+  /**
+   * Maps the error contained in the `Err` variant to a new error using the provided function.
+   * @typeparam F - The type of the error contained in the new `Err` variant.
+   * @param fn - The function to be applied to the error contained in the `Err` variant.
+   * @returns A new `Result` with the original `Ok` variant and the mapped error in the `Err` variant.
+   */
+  mapErr<F>(fn: (e: E) => F): Result<T, F>;
+  /**
+   * Maps the value contained in the `Ok` variant to a new `Result` using the provided function.
+   * @typeparam U - The type of the value contained in the new `Ok` variant.
+   * @param fn - The function to be applied to the value contained in the `Ok` variant.
+   * @returns A new `Result` with the mapped value in the `Ok` variant, or the original `Err` variant.
+   */
+  andThen<U>(fn: (t: T) => Result<U, E>): Result<U, E>;
+  /**
+   * Maps the error contained in the `Err` variant to a new `Result` using the provided function.
+   * @typeparam F - The type of the error contained in the new `Err` variant.
+   * @param fn - The function to be applied to the error contained in the `Err` variant.
+   * @returns A new `Result` with the original `Ok` variant and the mapped error in the `Err` variant.
+   */
+  orElse<F>(fn: (e: E) => Result<T, F>): Result<T, F>;
+}
+
+/**
+ * Represents a successful result with a value of type `T`.
+ * @template T - The type of the value in the `Ok` variant.
+ */
+export type Ok<T> = {
+  readonly ok: true;
+  v: T;
+};
+/**
+ * Represents an error result with an error of type `E`.
+ * @template E - The type of the error in the `Err` variant.
+ */
+export type Err<E> = {
+  readonly ok: false;
+  e: E;
+};
+/**
+ * Represents a `Result` type that can be either an `Ok` variant with a value of type `T`, or an `Err` variant with an error of type `E`.
+ */
+export type Result<T = undefined, E = Error> =
+  & (
+    | Ok<T>
+    | Err<E>
+  )
+  & ResultFunctions<T, E>;
+
+/**
+ * Creates an `Ok` result object containing the provided value.
+ */
+export function ok<T, E = Error>(v: T): Result<T, E> {
+  return new OkObject(v);
+}
+/**
+ * Creates an `Ok` result object containing `undefined`.
+ */
+export function fin<E = Error>(): Result<undefined, E> {
+  return ok(undefined);
+}
+/**
+ * Creates an `Err` result object containing the provided error.
+ */
+export function err<T, E = Error>(e: E): Result<T, E> {
+  return new ErrObject(e);
+}
+
+/**
+ * Creates an `Err` instance containing an `Error` with the provided message.
+ *
+ * @param message - The error message to be included in the `Error` instance.
+ * @returns An `Err` instance containing the created `Error`.
+ */
+export function anyhow<T>(message: string): Result<T, Error> {
+  return err(new Error(message));
+}
+export function execFn<T>(fn: () => T): Result<T, Error> {
+  try {
+    return ok(fn());
+  } catch (e) {
+    return e instanceof Error ? err(e) : anyhow(String(e));
+  }
+}
+export async function execAsyncFn<T>(
+  fn: () => Promise<T>,
+): Promise<Result<Awaited<T>, Error>> {
+  try {
+    return ok(await fn());
+  } catch (e) {
+    return e instanceof Error ? err(e) : anyhow(String(e));
+  }
+}
+export function wrapFn<Args extends unknown[], T>(
+  fn: (...args: Args) => T,
+): (...args: Args) => Result<T, Error> {
+  return (...args) => execFn(() => fn(...args));
+}
+export function wrapAsyncFn<Args extends unknown[], T>(
+  fn: (...args: Args) => Promise<T>,
+): (...args: Args) => Promise<Result<Awaited<T>, Error>> {
+  return (...args) => execAsyncFn(() => fn(...args));
+}
+
+// Implementation
+
+/**
+ * The implementation of the ResultFunctions interface.
+ */
+class ResultObject<T, E> implements ResultFunctions<T, E> {
+  isOk(): this is Ok<T> & ResultFunctions<T, E> {
+    return this instanceof OkObject;
+  }
+  isErr(): this is Err<E> & ResultFunctions<T, E> {
+    return this instanceof ErrObject;
+  }
+  expect(msg: string): T {
+    if (this.isOk()) {
+      return this.v;
+    }
+    panic_(msg);
+  }
+  expectErr(msg: string): E {
+    if (this.isErr()) {
+      return this.e;
+    }
+    panic_(msg);
+  }
+  unwrap_(): T {
+    return this.expect("called `unwrap_()` on an `Err` value");
+  }
+  unwrapErr_(): E {
+    return this.expectErr("called `unwrapErr_()` on an `Ok` value");
+  }
   match<U>(ok: (v: T) => U, err: (e: E) => U): U {
     if (this.isOk()) {
-      return ok(this.unwrap());
+      return ok(this.v);
     } else if (this.isErr()) {
-      return err(this.unwrapErr());
+      return err(this.e);
     } else {
-      throw new Error("Invalid state of Result instance");
+      panic_("unreachable: unknown variant of Result");
     }
   }
-
-  /**
-   * Maps the value contained in the Ok variant to a new value using the provided function.
-   * @typeparam U The type of the value contained in the new Ok variant.
-   * @param f The function to be applied to the value contained in the Ok variant.
-   * @returns A new Result with the mapped value in the Ok variant, or the original Err variant.
-   */
-  map<U>(f: (v: T) => U): Result<U, E> {
-    return this.match<Result<U, E>>(
-      (v) => ok(f(v)),
-      (e) => err(e),
-    );
+  unwrapOr(def: T): T {
+    return this.match<T>((v) => v, () => def);
   }
-
-  /**
-   * Maps the error contained in the Err variant to a new error using the provided function.
-   * @typeparam F The type of the error contained in the new Err variant.
-   * @param f The function to be applied to the error contained in the Err variant.
-   * @returns A new Result with the original Ok variant and the mapped error in the Err variant.
-   */
-  mapErr<F extends Error>(f: (e: E) => F): Result<T, F> {
-    return this.match<Result<T, F>>(
-      (v) => ok(v),
-      (e) => err(f(e)),
-    );
+  unwrapOrElse(fn: (e: E) => T): T {
+    return this.match<T>((v) => v, (e) => fn(e));
   }
-
-  /**
-   * Unwraps the value contained in the Ok variant, or returns the provided default value if the Result is in the Err state.
-   * @param v The default value to be returned if the Result is in the Err state.
-   * @returns The value contained in the Ok variant, or the default value.
-   */
-  unwrapOr(v: T): T {
-    return this.match<T>(
-      (v) => v,
-      () => v,
-    );
+  map<U>(fn: (t: T) => U): Result<U, E> {
+    return this.match<Result<U, E>>((v) => ok(fn(v)), (e) => err(e));
   }
-
-  /**
-   * Unwraps the value contained in the Ok variant, or calls the provided function to generate a value if the Result is in the Err state.
-   * @param f The function to be called to generate a value if the Result is in the Err state.
-   * @returns The value contained in the Ok variant, or the value generated by the function.
-   */
-  unwrapOrElse(f: (e: E) => T): T {
-    return this.match<T>(
-      (v) => v,
-      (e) => f(e),
-    );
+  mapErr<F>(fn: (e: E) => F): Result<T, F> {
+    return this.match<Result<T, F>>((v) => ok(v), (e) => err(fn(e)));
   }
-
-  /**
-   * Chains a computation on the value contained in the Ok variant, returning a new Result.
-   * @typeparam U The type of the value contained in the new Ok variant.
-   * @param f The function to be applied to the value contained in the Ok variant.
-   * @returns A new Result with the value returned by the function in the Ok variant, or the original Err variant.
-   */
-  andThen<U>(f: (v: T) => Result<U, E>): Result<U, E> {
-    return this.match<Result<U, E>>(
-      (v) => f(v),
-      (e) => err(e),
-    );
+  andThen<U>(fn: (t: T) => Result<U, E>): Result<U, E> {
+    return this.match<Result<U, E>>((v) => fn(v), (e) => err(e));
+  }
+  orElse<F>(fn: (e: E) => Result<T, F>): Result<T, F> {
+    return this.match<Result<T, F>>((v) => ok(v), (e) => fn(e));
   }
 }
 /**
- * Represents a successful result in the Result type.
- * @template T - The type of the value contained in the Ok result.
- * @template E - Used for type checking in the Result type, never used in Ok.
- *
- * It's recommended to use the ok() function to create an Ok instance.
- *
- * Use unwrap() to get the value, and it's safe to call in TypeScript.
+ * Implementation of the `Ok` variant of the `Result` type.
  */
-export class Ok<T, E extends Error> extends ResultBase<T, E> {
-  private value: T;
-
-  /**
-   * Creates a new Ok result with the specified value.
-   * @param value - The value contained in the Ok result.
-   */
-  constructor(value: T) {
+class OkObject<T, E> extends ResultObject<T, E> implements Ok<T> {
+  readonly ok = true;
+  constructor(public v: T) {
     super();
-    this.value = value;
-  }
-
-  /**
-   * Retrieves the value contained in the Ok result.
-   * @returns The value contained in the Ok result.
-   *
-   * It's safe to call this method in TypeScript,
-   * since it's only available when the type is narrowed to Ok.
-   */
-  unwrap(): T {
-    return this.value;
   }
 }
 /**
- * Represents an error result in the Rust Result pattern.
- * @template T - Used for type checking in the Result type, never used in Err.
- * @template E - The type of the error value.
- *
- * It's recommended to use the anyhow() function to create an Err instance from an error message.
- *
- * Use unwrapErr() to get the error value, and it's safe to call in TypeScript.
+ * Implementation of the `Err` variant of the `Result` type.
  */
-export class Err<T, E extends Error> extends ResultBase<T, E> {
-  private error: E;
-  constructor(error: E) {
+class ErrObject<T, E> extends ResultObject<T, E> implements Err<E> {
+  readonly ok = false;
+  constructor(public e: E) {
     super();
-    this.error = error;
   }
-
-  /**
-   * Retrieves the error value.
-   * @returns The error value.
-   * It's safe to call this method in TypeScript,
-   * since it's only available when the type is narrowed to Err.
-   */
-  unwrapErr(): E {
-    return this.error;
-  }
-}
-
-/**
- * Create a new Ok instance.
- */
-export function ok<T>(value: T): Ok<T, never>;
-export function ok(): Ok<void, never>;
-export function ok<T>(value?: T): Ok<T | undefined, never> {
-  return new Ok(value);
-}
-/**
- * Create a new Err instance.
- */
-export function err<E extends Error>(error: E): Err<never, E> {
-  return new Err(error);
-}
-/**
- * Create a new Err instance from error message.
- */
-export function anyhow(s: string): Err<never, Error> {
-  return err(new Error(s));
-}
-
-/**
- * Function to convert an unknown value to an specific Error instance.
- */
-export type ToError<E extends Error> = (e: unknown) => E;
-/**
- * Convert an unknown value to an Error instance.
- * @param e Unknown error value.
- * @returns Error instance.
- */
-export function toError(e: unknown): Error {
-  if (e instanceof Error) {
-    return e;
-  } else {
-    return new Error(String(e));
-  }
-}
-/**
- * Run throwable function and return a Result instance.
- * @param toErr Function to convert an unknown value to an Error instance.
- * @param f Throwable function.
- */
-export function safelyWith<E extends Error, ToErr extends ToError<E>, T>(
-  toErr: ToErr,
-  f: () => T,
-): Result<T, E> {
-  try {
-    return ok(f());
-  } catch (e) {
-    return err(toErr(e));
-  }
-}
-/**
- * Run throwable function and return a Result<T, Error> instance.
- * @param f Throwable function.
- * @returns Result instance.
- */
-export function safely<T>(f: () => T): Result<T, Error> {
-  return safelyWith(toError, f);
-}
-/**
- * Run throwable async function and return a Result instance.
- * @param toErr Function to convert an unknown value to an Error instance.
- * @param f Throwable async function.
- * @returns Promise of Result instance.
- */
-export async function safelyAsyncWith<
-  E extends Error,
-  ToErr extends ToError<E>,
-  T,
->(toErr: ToErr, f: () => Promise<T>): Promise<Result<Awaited<T>, E>> {
-  try {
-    const value = await f();
-    return ok(value);
-  } catch (e) {
-    return err(toErr(e));
-  }
-}
-/**
- * Run throwable async function and return a Result<T, Error> instance.
- * @param f Throwable async function.
- * @returns Promise of Result instance.
- */
-export function safelyAsync<T>(
-  f: () => Promise<T>,
-): Promise<Result<Awaited<T>, Error>> {
-  return safelyAsyncWith(toError, f);
 }

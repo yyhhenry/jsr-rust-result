@@ -1,68 +1,94 @@
-import { assertEquals } from "@std/assert";
-import { anyhow, ok, type Result, safely, safelyAsync } from "./mod.ts";
+import { assert, assertEquals } from "@std/assert";
+import {
+  anyhow,
+  err,
+  execAsyncFn,
+  execFn,
+  fin,
+  ok,
+  type Result,
+  wrapAsyncFn,
+  wrapFn,
+} from "./mod.ts";
 
-Deno.test("Empty ok", () => {
-  // This should pass type check
-  function emptyOk(): Result<void, Error> {
-    return ok();
+Deno.test("new Result", () => {
+  {
+    const v = fin();
+    assert(v.isOk());
+    assertEquals(v.ok, true);
+    assertEquals(v.v, undefined);
+    assertEquals(v.isErr(), false);
   }
-  assertEquals(emptyOk().isOk(), true);
-  assertEquals(emptyOk(), ok());
+  {
+    const v = ok(42);
+    assert(v.isOk());
+    assertEquals(v.ok, true);
+    assertEquals(v.v, 42);
+    assertEquals(v.isErr(), false);
+  }
+  {
+    const v = anyhow("an error occurred");
+    assert(v.isErr());
+    assertEquals(v.ok, false);
+    assertEquals(v.e, new Error("an error occurred"));
+    assertEquals(v.isOk(), false);
+  }
+  {
+    const v = err(new SyntaxError("syntax error"));
+    assert(v.isErr());
+    assertEquals(v.ok, false);
+    assertEquals(v.e, new SyntaxError("syntax error"));
+    assertEquals(v.isOk(), false);
+  }
 });
 
-Deno.test("generate result and unwrap", () => {
-  // This should pass type check
-  function genResult(genError: boolean): Result<number, Error> {
-    if (genError) {
-      return anyhow("calc(): error occurred");
-    }
-    return ok(42);
+Deno.test("unwrap_ & expect", () => {
+  const okRes = ok(42);
+  assertEquals(okRes.unwrap_(), 42);
+  assertEquals(okRes.expect("should not reach here"), 42);
+  try {
+    okRes.unwrapErr_();
+    throw new Error("should not reach here");
+  } catch (e) {
+    assert(e instanceof Error);
+    assertEquals(e.message, "called `unwrapErr_()` on an `Ok` value");
   }
-  // This should pass type check
-  genResult(true);
-  genResult(false);
+  try {
+    okRes.expectErr("we expect an error here");
+    throw new Error("should not reach here");
+  } catch (e) {
+    assert(e instanceof Error);
+    assertEquals(e.message, "we expect an error here");
+  }
 
-  const okResult: Result<number, Error> = ok(42);
-  assertEquals(okResult.isOk(), true);
-  assertEquals(okResult.isErr(), false);
-
-  // This should pass type check
-  if (okResult.isOk()) {
-    assertEquals(okResult.unwrap(), 42);
-  }
-  // This should pass type check
-  if (!okResult.isErr()) {
-    assertEquals(okResult.unwrap(), 42);
-  }
-  assertEquals(okResult.unwrapOr(0), 42);
+  const errRes = anyhow("an error occurred");
+  assertEquals(errRes.unwrapErr_().message, "an error occurred");
   assertEquals(
-    okResult.unwrapOrElse(() => 0),
-    42,
+    errRes.expectErr("should not reach here").message,
+    "an error occurred",
   );
-
-  // Inferred
-  const okResult2 = ok("Hello World");
-  assertEquals(okResult2.unwrap(), "Hello World");
-
-  const errResult: Result<number, Error> = anyhow("an error occurred");
-  assertEquals(errResult.isOk(), false);
-  assertEquals(errResult.isErr(), true);
-
-  // This should pass type check
-  if (errResult.isErr()) {
-    assertEquals(errResult.unwrapErr().message, "an error occurred");
+  try {
+    errRes.unwrap_();
+    throw new Error("should not reach here");
+  } catch (e) {
+    assert(e instanceof Error);
+    assertEquals(e.message, "called `unwrap_()` on an `Err` value");
   }
-  // This should pass type check
-  if (!errResult.isOk()) {
-    assertEquals(errResult.unwrapErr().message, "an error occurred");
+  try {
+    errRes.expect("we expect a value here");
+    throw new Error("should not reach here");
+  } catch (e) {
+    assert(e instanceof Error);
+    assertEquals(e.message, "we expect a value here");
   }
-  assertEquals(errResult.unwrapOr(0), 0);
+});
 
-  const errResult2: Result<number, Error> = anyhow("42");
-  assertEquals(
-    errResult2.unwrapOrElse((e) => +e.message),
-    42,
-  );
+Deno.test("fin", () => {
+  function doNothing(): Result {
+    return fin();
+  }
+  const result = doNothing();
+  assertEquals(result, ok(undefined));
 });
 
 Deno.test("match", () => {
@@ -85,85 +111,129 @@ Deno.test("match", () => {
   assertEquals(errValue, "an error occurred");
 });
 
-Deno.test("map and mapErr", () => {
-  const okResult: Result<number, Error> = ok(10);
-  const mappedOkResult = okResult.map((v) => v * 2);
-  assertEquals(mappedOkResult.isOk() && mappedOkResult.unwrap(), 20);
-
-  const errResult: Result<number, Error> = anyhow("an error occurred");
-  const mappedErrResult = errResult.map((v) => v * 2);
-  assertEquals(
-    mappedErrResult.isErr() && mappedErrResult.unwrapErr().message,
-    "an error occurred",
-  );
-
-  const okResult2: Result<number, Error> = ok(10);
-  const mappedOkResult2 = okResult2.mapErr((e) => new Error(e.message + "!"));
-  assertEquals(mappedOkResult2.isOk() && mappedOkResult2.unwrap(), 10);
-
-  const errResult2: Result<number, Error> = anyhow("an error occurred");
-  const mappedErrResult2 = errResult2.mapErr((e) => new Error(e.message + "!"));
-  assertEquals(
-    mappedErrResult2.isErr() && mappedErrResult2.unwrapErr().message,
-    "an error occurred!",
-  );
-});
-
-Deno.test("andThen", () => {
-  const okResult: Result<number, Error> = ok(10);
-  const andThenOkResult = okResult.andThen((v) => ok(v * 2));
-  assertEquals(andThenOkResult.isOk() && andThenOkResult.unwrap(), 20);
-
-  const errResult: Result<number, Error> = anyhow("an error occurred");
-  const andThenErrResult = errResult.andThen((v) => ok(v * 2));
-  assertEquals(
-    andThenErrResult.isErr() && andThenErrResult.unwrapErr().message,
-    "an error occurred",
-  );
-
-  const okResult2: Result<number, Error> = ok(10);
-  const andThenOkResult2 = okResult2.andThen(() => anyhow("an error occurred"));
-  assertEquals(
-    andThenOkResult2.isErr() && andThenOkResult2.unwrapErr().message,
-    "an error occurred",
-  );
-
-  const errResult2: Result<number, Error> = anyhow("an error occurred");
-  const andThenErrResult2 = errResult2.andThen(() => anyhow("42"));
-  assertEquals(
-    andThenErrResult2.isErr() && andThenErrResult2.unwrapErr().message,
-    "an error occurred",
-  );
-});
-
-Deno.test("safely", async () => {
-  const safeJsonParse = (json: string): Result<unknown, Error> =>
-    safely(() => JSON.parse(json));
-  const result = safeJsonParse('{"a": 1}');
-  assertEquals(result.unwrapOr(null), { a: 1 });
-
-  const invalidJson = "invalid json";
-  let errStr = "";
-  try {
-    JSON.parse(invalidJson);
-  } catch (e) {
-    if (e instanceof Error) {
-      errStr = e.message;
-    }
+Deno.test("map & mapErr", () => {
+  {
+    const a: Result<number, Error> = ok(10);
+    const b = a.map((v) => v * 2);
+    assertEquals(b, ok(20));
   }
-  const result2 = safeJsonParse(invalidJson);
-  assertEquals(result2.isErr(), true);
-  assertEquals(result2.isErr() && result2.unwrapErr().message, errStr);
 
-  const asyncJsonParse = (s: string): Promise<unknown> =>
-    Promise.resolve(JSON.parse(s));
+  {
+    const a: Result<number, Error> = anyhow("an error occurred");
+    const b = a.map((v) => v * 2);
+    assertEquals(b, anyhow("an error occurred"));
+  }
 
-  const safeAsyncJsonParse = (s: string): Promise<Result<unknown, Error>> =>
-    safelyAsync(() => asyncJsonParse(s));
+  {
+    const a: Result<number, Error> = ok(10);
+    const b = a.mapErr((e) => new Error(`new error: ${e.message}`));
+    assertEquals(b, ok(10));
+  }
 
-  const result3 = await safeAsyncJsonParse('{"a": 1}');
-  assertEquals(result3.isOk() && result3.unwrap(), { a: 1 });
+  {
+    const a: Result<number, Error> = anyhow("an error occurred");
+    const b = a.mapErr((e) => new Error(`new error: ${e.message}`));
+    assertEquals(b, anyhow("new error: an error occurred"));
+  }
+});
 
-  const result4 = await safeAsyncJsonParse(invalidJson);
-  assertEquals(result4.isErr() && result4.unwrapErr().message, errStr);
+Deno.test("unwrapOr & unwrapOrElse", () => {
+  {
+    const v: Result<number, Error> = ok(10);
+    assertEquals(v.unwrapOr(0), 10);
+    assertEquals(v.unwrapOrElse(() => 0), 10);
+  }
+
+  {
+    const a: Result<number, Error> = anyhow("an error occurred");
+    assertEquals(a.unwrapOr(0), 0);
+    assertEquals(a.unwrapOrElse(() => 0), 0);
+  }
+});
+
+Deno.test("andThen & orElse", () => {
+  {
+    const a: Result<number, Error> = ok(10);
+    const b = a.andThen((v) => ok(v * 2));
+    assertEquals(b, ok(20));
+  }
+
+  {
+    const a: Result<number, Error> = anyhow("an error occurred");
+    const b = a.andThen((v) => ok(v * 2));
+    assertEquals(b, anyhow("an error occurred"));
+  }
+
+  {
+    const a: Result<number, Error> = ok(10);
+    const b = a.orElse(() => anyhow("another error occurred"));
+    assertEquals(b, ok(10));
+  }
+
+  {
+    const a: Result<number, Error> = anyhow("an error occurred");
+    const b = a.orElse(() => anyhow("another error occurred"));
+    assertEquals(b, anyhow("another error occurred"));
+  }
+});
+
+Deno.test("execFn & execAsyncFn", async () => {
+  {
+    const v = execFn(() => 42);
+    assertEquals(v, ok(42));
+  }
+
+  {
+    const v = execFn(() => {
+      throw new Error("an error occurred");
+    });
+    assertEquals(v, anyhow("an error occurred"));
+  }
+
+  {
+    const v = await execAsyncFn(() => Promise.resolve(42));
+    assertEquals(v, ok(42));
+  }
+
+  {
+    const v = await execAsyncFn(() =>
+      Promise.reject(new Error("an error occurred"))
+    );
+    assertEquals(v, anyhow("an error occurred"));
+  }
+});
+
+Deno.test("wrapFn & wrapAsyncFn", async () => {
+  function asyncSleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  {
+    const fn = wrapFn((a: number, b: number) => a + b);
+    assertEquals(fn(1, 2), ok(3));
+  }
+
+  {
+    const fn = wrapFn((a: number, b: number) => {
+      const x = a + b;
+      throw new Error(`an error occurred while x = ${x}`);
+    });
+    assertEquals(fn(1, 2), anyhow("an error occurred"));
+  }
+
+  {
+    const fn = wrapAsyncFn(async (a: number, b: number) => {
+      await asyncSleep(10);
+      return a + b;
+    });
+    assertEquals(await fn(1, 2), ok(3));
+  }
+
+  {
+    const fn = wrapAsyncFn(async (a: number, b: number) => {
+      const x = a + b;
+      await asyncSleep(10);
+      throw new Error(`an error occurred while x = ${x}`);
+    });
+    assertEquals(await fn(1, 2), anyhow("an error occurred"));
+  }
 });
