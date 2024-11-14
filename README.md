@@ -28,3 +28,15 @@ console.log(
   errRes.isOk() ? errRes.unwrap() : errRes.unwrapErr().message,
 );
 ```
+
+## Development
+
+We prefer VSCode with the following settings:
+
+```json
+{
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  }
+}
+```
