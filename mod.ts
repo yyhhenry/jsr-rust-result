@@ -7,7 +7,7 @@
  *
  * @example
  * ```typescript
- * panic_("Division by zero");
+ * panic("Division by zero");
  * ```
  */
 export class Panic extends Error {
@@ -22,7 +22,7 @@ export class Panic extends Error {
  * @param message - The message to include in the `Panic` error.
  * @throws {Panic} Always throws a `Panic` error with the provided message.
  */
-export function panic_(message: string): never {
+export function panic(message: string): never {
   throw new Panic(message);
 }
 
@@ -56,21 +56,20 @@ export interface ResultFunctions<T, E = Error> {
   /**
    * Unwraps the value contained in the `Ok` variant.
    * @returns The value contained in the `Ok` variant.
-   * @throws {Panic} If the `Result` is an `Err` variant.
    *
    * @remarks
-   * Not recommended for use in production code.
+   * It throws the error contained in the `Err` variant.
+   * Panics if error is not an instance of `Error`.
    */
-  unwrap_(): T;
+  unwrap(): T;
   /**
    * Unwraps the error contained in the `Err` variant.
    * @returns The error contained in the `Err` variant.
-   * @throws {Panic} If the `Result` is an `Ok` variant.
    *
    * @remarks
-   * Not recommended for use in production code.
+   * Panics if the `Result` is an `Ok` variant.
    */
-  unwrapErr_(): E;
+  unwrapErr(): E;
   /**
    * Matches the `Result` against the provided functions and returns the result of the matching function.
    * @typeparam U - The type of the value returned by the matching function.
@@ -218,19 +217,24 @@ class ResultObject<T, E> implements ResultFunctions<T, E> {
     if (this.isOk()) {
       return this.v;
     }
-    panic_(msg);
+    panic(msg);
   }
   expectErr(msg: string): E {
     if (this.isErr()) {
       return this.e;
     }
-    panic_(msg);
+    panic(msg);
   }
-  unwrap_(): T {
-    return this.expect("called `unwrap_()` on an `Err` value");
+  unwrap(): T {
+    return this.unwrapOrElse((e) => {
+      if (e instanceof Error) {
+        throw e;
+      }
+      panic("called `unwrap()` on an `Err` value");
+    });
   }
-  unwrapErr_(): E {
-    return this.expectErr("called `unwrapErr_()` on an `Ok` value");
+  unwrapErr(): E {
+    return this.expectErr("called `unwrapErr()` on an `Ok` value");
   }
   match<U>(ok: (v: T) => U, err: (e: E) => U): U {
     if (this.isOk()) {
@@ -238,7 +242,7 @@ class ResultObject<T, E> implements ResultFunctions<T, E> {
     } else if (this.isErr()) {
       return err(this.e);
     } else {
-      panic_("unreachable: unknown variant of Result");
+      panic("unreachable: unknown variant of Result");
     }
   }
   unwrapOr(def: T): T {

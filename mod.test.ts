@@ -42,16 +42,16 @@ Deno.test("new Result", () => {
   }
 });
 
-Deno.test("unwrap_ & expect", () => {
+Deno.test("unwrap & expect", () => {
   const okRes = ok(42);
-  assertEquals(okRes.unwrap_(), 42);
+  assertEquals(okRes.unwrap(), 42);
   assertEquals(okRes.expect("should not reach here"), 42);
   try {
-    okRes.unwrapErr_();
+    okRes.unwrapErr();
     throw new Error("should not reach here");
   } catch (e) {
     assert(e instanceof Error);
-    assertEquals(e.message, "called `unwrapErr_()` on an `Ok` value");
+    assertEquals(e.message, "called `unwrapErr()` on an `Ok` value");
   }
   try {
     okRes.expectErr("we expect an error here");
@@ -62,17 +62,17 @@ Deno.test("unwrap_ & expect", () => {
   }
 
   const errRes = anyhow("an error occurred");
-  assertEquals(errRes.unwrapErr_().message, "an error occurred");
+  assertEquals(errRes.unwrapErr().message, "an error occurred");
   assertEquals(
     errRes.expectErr("should not reach here").message,
     "an error occurred",
   );
   try {
-    errRes.unwrap_();
+    errRes.unwrap();
     throw new Error("should not reach here");
   } catch (e) {
     assert(e instanceof Error);
-    assertEquals(e.message, "called `unwrap_()` on an `Err` value");
+    assertEquals(e.message, "an error occurred");
   }
   try {
     errRes.expect("we expect a value here");
