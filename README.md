@@ -6,27 +6,31 @@ Rust-like error handling in TypeScript.
 
 ```sh
 deno add jsr:@yyhhenry/rust-result
+# or
+pnpm dlx jsr add @yyhhenry/rust-result
 ```
 
 ## Usage
 
 ```ts
-import { safely } from "@yyhhenry/rust-result";
-const safeJsonParse = (s: string) => safely(() => JSON.parse(s));
+import { wrapFn } from "@yyhhenry/rust-result";
+const safeJsonParse = wrapFn(JSON.parse);
 
-// true { a: 1 }
-const okRes = safeJsonParse('{"a": 1}');
-console.log(
-  okRes.isOk(),
-  okRes.isOk() ? okRes.unwrap() : okRes.unwrapErr().message,
-);
+function parseAndLog(text: string) {
+  const res = safeJsonParse(text);
+  res.map((v) => JSON.stringify(v)).match(
+    (v) => console.log(`Ok: ${v}`),
+    (e) => console.log(`Error (caught): ${e.message}`),
+  );
+}
 
-// false Expected ',' or '}' after property value in JSON at position 7 (line 1 column 8)
-const errRes = safeJsonParse('{"a": 1');
-console.log(
-  errRes.isOk(),
-  errRes.isOk() ? errRes.unwrap() : errRes.unwrapErr().message,
-);
+// Ok: {"a":1}
+parseAndLog(`{
+  "a": 1
+}`);
+
+// Error (caught): Expected ',' or '}' after property value in JSON at position 9 (line 1 column 10)
+parseAndLog(`{ "a": 1 `);
 ```
 
 ## Development

@@ -3,17 +3,16 @@ const safeJsonParse = wrapFn(JSON.parse);
 
 function parseAndLog(text: string) {
   const res = safeJsonParse(text);
-  if (res.isOk()) {
-    console.log(`Parsed: ${JSON.stringify(res.v)}`);
-  } else {
-    console.log(`Error: ${res.e.message}`);
-  }
+  res.map((v) => JSON.stringify(v)).match(
+    (v) => console.log(`Ok: ${v}`),
+    (e) => console.log(`Error (caught): ${e.message}`),
+  );
 }
 
-// Parsed: {"a":1}
+// Ok: {"a":1}
 parseAndLog(`{
   "a": 1
 }`);
 
-// Error: Expected property name or '}' in JSON at position 2 (line 1 column 3)
+// Error (caught): Expected ',' or '}' after property value in JSON at position 9 (line 1 column 10)
 parseAndLog(`{ "a": 1 `);
